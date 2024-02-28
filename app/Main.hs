@@ -1,6 +1,9 @@
-import Foundation (IO)
+import Foundation
 import Lib (application)
 import Network.Wai.Handler.Warp (run)
 
 main :: IO ()
-main = run 3000 application
+main = do
+    let port = 3000
+    putStrLn $ "listening on port: " <> show port
+    run port application

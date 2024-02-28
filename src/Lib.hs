@@ -13,7 +13,6 @@ import Text.Blaze.Html.Renderer.Utf8 (renderHtml)
 import Text.Blaze.Html5 as H
 import Text.Blaze.Html5.Attributes as A
 import Text.Blaze.Htmx
-import Text.Blaze.Internal (customAttribute)
 
 hello :: Html
 hello = H.docTypeHtml $ do

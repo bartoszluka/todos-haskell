@@ -1,0 +1,10 @@
+loops:
+  htmx:
+    description: Work on site content
+    script: |
+      set -x
+      stack build
+      killall htmx-exe -q -9 2&>/dev/null || true
+      stack exec -- htmx-exe & disown
+    filter:
+      git: true
