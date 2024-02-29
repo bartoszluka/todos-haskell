@@ -1,0 +1,12 @@
+body {
+  font-family: Rubik;
+  font-size: 1rem;
+  font-weight: 400;
+  line-height: 1.5;
+  color: rgb(236, 239, 244);
+  background-color: rgb(46, 52, 64);
+  /* transition: */
+  /*   color 400ms ease-in-out 0s, */
+  /*   background-color 400ms ease-in-out 0s; */
+  scroll-behavior: smooth;
+}

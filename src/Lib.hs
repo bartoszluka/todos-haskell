@@ -25,21 +25,31 @@ hello = H.docTypeHtml $ do
 htmxScriptTag :: Html
 htmxScriptTag =
     script ""
-        ! src "https://unpkg.com/htmx.org@1.9.10"
-        ! customAttribute "integrity" "sha384-D1Kt99CQMDuVetoL1lrYwg5t+9QdHe7NLX/SoJYkXDFfX37iInKRy5xLSi8nO7UC"
-        ! customAttribute "crossorigin" "anonymous"
+        ! src "htmx.min.js"
+
+styleSheet :: Text -> Html
+styleSheet css = link ! rel "stylesheet" ! href (toValue css)
 
 contentTypeHtml :: (IsString s) => (HeaderName, s)
 contentTypeHtml = ("Content-Type", "text/html")
+
+contentTypeJavaScript :: (IsString s) => (HeaderName, s)
+contentTypeJavaScript = ("Content-Type", "application/javascript")
+
+contentTypeCss :: (IsString s) => (HeaderName, s)
+contentTypeCss = ("Content-Type", "text/css")
+
 
 todos :: Html
 todos = H.docTypeHtml $ do
     H.head $ do
         H.title "Todos"
+        styleSheet "style.css"
         htmxScriptTag
     H.body $ do
         h1 "todo list"
         ul $ forM_ (["1", "2", "3"]) (li . todoItem)
+
 
 todoItem :: Text -> Html
 todoItem n =
@@ -71,7 +81,18 @@ application request respond =
                 responseLBS status200 [contentTypeHtml] $
                     renderHtml $
                         todoItem str
-        _ ->
+        ("GET", ["style.css"]) ->
+            respond $
+                responseFile status200 [contentTypeCss] "static/css/style.css" Nothing
+        ("GET", ["htmx.min.js"]) ->
+            respond $
+                responseFile status200 [contentTypeJavaScript] "static/htmx-v1.9.10-min.js" Nothing
+        ("GET", ["favicon.ico"]) ->
+            respond $
+                responseFile status200 [contentTypeJavaScript] "static/favicon.ico" Nothing
+                    
+        other -> do
+            putStrLn $ show other
             respond $
                 responseLBS status200 [contentTypeHtml] $
                     renderHtml hello
