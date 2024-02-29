@@ -1,5 +1,4 @@
-module Lib (
-    hello,
+module Server (
     application,
 ) where
 
@@ -13,6 +12,7 @@ import Text.Blaze.Html.Renderer.Utf8 (renderHtml)
 import Text.Blaze.Html5 as H
 import Text.Blaze.Html5.Attributes as A
 import Text.Blaze.Htmx
+import Prelude qualified
 
 hello :: Html
 hello = H.docTypeHtml $ do
@@ -39,35 +39,43 @@ contentTypeJavaScript = ("Content-Type", "application/javascript")
 contentTypeCss :: (IsString s) => (HeaderName, s)
 contentTypeCss = ("Content-Type", "text/css")
 
-
 todos :: Html
 todos = H.docTypeHtml $ do
     H.head $ do
         H.title "Todos"
-        styleSheet "style.css"
+        -- styleSheet "style.css"
         htmxScriptTag
     H.body $ do
         h1 "todo list"
-        ul $ forM_ (["1", "2", "3"]) (li . todoItem)
+        ul $ forM_ examples (li . todoItem)
+  where
+    examples = [TodoItem "1" "todo1" True, TodoItem "2" "todo2" False]
 
-
-todoItem :: Text -> Html
-todoItem n =
-    let linkText = "todo item " <> toHtml n
-        linkAddress = "/todos/" <> toValue n
-     in H.div
-            ( a linkText
-                ! href linkAddress
-                ! hxSwap "outerHTML"
-                ! hxTarget "closest ul"
-            )
-            ! hxBoost
+toText :: Int -> Text
+toText = T.pack . Prelude.show
 
 data TodoItem = TodoItem
     { identifier :: Text
-    , value :: Text
+    , description :: Text
     , completed :: Bool
     }
+
+todoItem :: TodoItem -> Html
+todoItem TodoItem{identifier, description, completed} =
+    H.div $
+        mconcat
+            [ H.span (text description)
+            , input ! type_ "checkbox" ! hxPut ("/todos/" <> toValue identifier) ! value "dupa"
+            , button ! hxDelete ("/todos/" <> toValue identifier) $ text "delete"
+            ]
+
+-- <button hx-post="/clicked"
+--     hx-trigger="click"
+--     hx-target="#parent-div"
+--     hx-swap="outerHTML"
+-- >
+--     Click Me!
+-- </button>
 
 application :: Request -> (Response -> IO ResponseReceived) -> IO ResponseReceived
 application request respond =
@@ -90,9 +98,8 @@ application request respond =
         ("GET", ["favicon.ico"]) ->
             respond $
                 responseFile status200 [contentTypeJavaScript] "static/favicon.ico" Nothing
-                    
         other -> do
-            putStrLn $ show other
+            Prelude.print other
             respond $
                 responseLBS status200 [contentTypeHtml] $
                     renderHtml hello

@@ -13,7 +13,7 @@ packages:
     hackage: blaze-htmx-0.1.0.0@sha256:cfd799bf5e0693879ad175168f6c78d45cb8f543428fa374f6ffb62fbc8dc52f,1327
 snapshots:
 - completed:
-    sha256: e596f5467d31095fd7b9f750e82aeffe012e38e795c13e1cdc945c9cab928085
-    size: 604415
-    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/nightly/2024/2/27.yaml
-  original: nightly-2024-02-27
+    sha256: e2c529ccfb21501f98f639e056cbde50470b86256d9849d7a82d414ca23e4276
+    size: 712898
+    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/22/12.yaml
+  original: lts-22.12

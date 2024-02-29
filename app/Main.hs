@@ -1,5 +1,5 @@
 import Foundation
-import Lib (application)
+import Server (application)
 import Network.Wai.Handler.Warp (run)
 
 main :: IO ()
