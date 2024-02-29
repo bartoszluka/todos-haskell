@@ -35,6 +35,7 @@ dependencies:
   - blaze-markup
   - blaze-htmx
   - foundation
+  - bytestring
   - text
 
 ghc-options:

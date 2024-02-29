@@ -2,7 +2,7 @@ loops:
   htmx:
     description: Work on site content
     script: |
-      set -x
+      set -xe
       stack build
       killall htmx-exe --quiet --wait 2&>/dev/null || true
       stack exec -- htmx-exe & disown
