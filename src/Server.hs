@@ -1,6 +1,5 @@
 module Server (
     TodoItem (..),
-    application,
     appWithState,
 ) where
 
@@ -69,60 +68,14 @@ todoItem TodoItem{identifier, description, completed} =
                 ! type_ "checkbox"
                 ! name "completed"
                 ! hxPut ("/todos/" <> toValue identifier)
-                ! value "true"
+                -- ! value "true"
                 ! if completed then checked "true" else mempty
-            , button ! hxDelete ("/todos/" <> toValue identifier) $ text "delete"
+            , button
+                ! hxDelete ("/todos/" <> toValue identifier)
+                ! hxTarget "closest li"
+                ! hxSwap "outerHTML"
+                $ text "delete"
             ]
-
-application :: Request -> (Response -> IO ResponseReceived) -> IO ResponseReceived
-application request respond =
-    case (requestMethod request, pathInfo request) of
-        ("GET", ["todos"]) ->
-            respond $
-                responseLBS status200 [contentTypeHtml] $
-                    renderHtml $ todos []
-        ("GET", ["style.css"]) ->
-            respond $
-                responseFile status200 [contentTypeCss] "static/css/style.css" Nothing
-        ("GET", ["htmx.min.js"]) ->
-            respond $
-                responseFile status200 [contentTypeJavaScript] "static/htmx-v1.9.10-min.js" Nothing
-        ("GET", ["favicon.ico"]) ->
-            respond $
-                responseFile status200 [contentTypeJavaScript] "static/favicon.ico" Nothing
-        ("PUT", ["todos", todoId]) -> do
-            print todoId
-            rqBody <- getRequestBodyChunk request
-            let newTodo = case rqBody of
-                    "" -> TodoItem{identifier = todoId, description = "dupa", completed = False}
-                    str
-                        | "completed=" `B.isPrefixOf` str ->
-                            TodoItem{identifier = todoId, description = "dupa", completed = True}
-                    _ -> error "dupa"
-
-            print newTodo
-            respond $
-                responseLBS status200 [("Content-Type", "text/plain")] ""
-        ("DELETE", ["todos", todoId]) -> do
-            Prelude.print todoId
-            rqBody <- getRequestBodyChunk request
-            let newTodo = case rqBody of
-                    "" -> TodoItem{identifier = todoId, description = "dupa", completed = False}
-                    str
-                        | "completed=" `B.isPrefixOf` str ->
-                            TodoItem{identifier = todoId, description = "dupa", completed = True}
-                    _ -> error "dupa"
-
-            Prelude.print newTodo
-            respond $
-                responseLBS status200 [("Content-Type", "text/plain")] ""
-        other -> do
-            Prelude.print other
-            rqBody <- getRequestBodyChunk request
-            Prelude.print rqBody
-            respond $
-                responseLBS status200 [contentTypeHtml] $
-                    renderHtml hello
 
 appWithState :: MVar [TodoItem] -> Request -> (Response -> IO b) -> IO b
 appWithState todoList request respond = do
@@ -154,9 +107,20 @@ appWithState todoList request respond = do
                         if identifier item' == todoId
                             then item'{completed = isCompleted}
                             else item'
-                    new = changeCompleted <$> todoList'
+                    newState = changeCompleted <$> todoList'
 
                 responseReceived <- respond $ responseLBS status200 [("Content-Type", "text/plain")] ""
-                return (new, responseReceived)
-        -- print todoList
-        _ -> undefined
+                return (newState, responseReceived)
+        ("DELETE", ["todos", todoId]) -> do
+            modifyMVar todoList $ \todoList' -> do
+                let newState = filter (\item' -> identifier item' /= todoId) todoList'
+
+                responseReceived <- respond $ responseLBS status200 [("Content-Type", "text/plain")] ""
+                return (newState, responseReceived)
+        other -> do
+            Prelude.print other
+            rqBody <- getRequestBodyChunk request
+            Prelude.print rqBody
+            respond $
+                responseLBS status200 [contentTypeHtml] $
+                    renderHtml hello

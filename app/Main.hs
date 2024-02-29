@@ -13,5 +13,13 @@ main :: IO ()
 main = do
     let port = 3000
     putStrLn $ "listening on port: " <> show port
-    todos <- newMVar [TodoItem "learn-haskell" "Learn Haskell" False, TodoItem "learn-server" "Learn Server" True]
+    todos <-
+        newMVar
+            [ TodoItem "learn-haskell" "Learn Haskell" True
+            , TodoItem "learn-server" "Learn Wai/Warp" False
+            , TodoItem "learn-htmx" "Learn HTMX" False
+            , TodoItem "learn-css" "Learn CSS" False
+            , TodoItem "learn-html" "Learn HTML" False
+            , TodoItem "publish" "Publish the project" False
+            ]
     run port $ appWithState todos
