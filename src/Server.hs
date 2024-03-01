@@ -5,10 +5,13 @@ module Server (
 
 import Control.Concurrent (modifyMVar, readMVar)
 import Control.Concurrent.MVar (MVar)
+import Data.ByteString (ByteString)
+import Data.ByteString qualified as B
 import Data.Text (Text)
+import Data.Text.Encoding qualified as TSE
 import Foundation
 import Foundation.Collection (forM_)
-import Network.HTTP.Types (HeaderName, status200, status404)
+import Network.HTTP.Types (HeaderName, status200, status404, urlDecode)
 import Network.Wai
 import Text.Blaze.Html.Renderer.Utf8 (renderHtml)
 import Text.Blaze.Html5 as H
@@ -50,7 +53,15 @@ todos todoList = H.docTypeHtml $ do
         htmxScriptTag
     H.body $ do
         h1 "todo list"
-        ul $ forM_ todoList (li . todoItem)
+        ul ! A.id "todo-list" $ forM_ todoList (li . todoItem)
+
+        input
+            ! type_ "text"
+            ! name "task"
+            ! placeholder "very important task"
+            ! hxPost "/todos"
+            ! hxTarget "#todo-list"
+            ! hxSwap "beforeend"
 
 data TodoItem = TodoItem
     { identifier :: Text
@@ -93,11 +104,22 @@ changeCompletion todoList todoId isCompleted = modifyMVar todoList $ \todoList' 
 
     return (newState, newTodo)
 
+appendItem :: MVar [a] -> a -> IO ()
+appendItem mvar todo = modifyMVar mvar $
+    \todoList -> return (todoList Prelude.++ [todo], ())
+
 emptyOk :: Response
 emptyOk = responseLBS status200 [("Content-Type", "text/plain")] ""
 
+textToByteString :: Text -> ByteString
+textToByteString = TSE.encodeUtf8
+
+byteStringToText :: ByteString -> Text
+byteStringToText = TSE.decodeUtf8
+
 appWithState :: MVar [TodoItem] -> Request -> (Response -> IO b) -> IO b
 appWithState todoList request respond = do
+    let respondHtml = respond . responseLBS status200 [contentTypeHtml] . renderHtml
     case (requestMethod request, pathInfo request) of
         ("GET", ["todos"]) -> do
             todoList' <- readMVar todoList
@@ -124,12 +146,19 @@ appWithState todoList request respond = do
             print mbyTodo
             respond $ case mbyTodo of
                 Just newTodo -> responseLBS status200 [contentTypeHtml] $ renderHtml $ todoItem newTodo
-                Nothing -> responseLBS status404 [("Content-Type", "text/plain")] $ "the todo item with ID " <> (fromString . Prelude.show $ todoId) <> " not found"
+                Nothing -> responseLBS status404 [("Content-Type", "text/plain")] $ "the todo item with ID " <> (B.fromStrict . textToByteString $ todoId) <> " not found"
         ("POST", ["todos"]) -> do
-            rqBody <- getRequestBodyChunk request
-            print rqBody
+            rqBody <- urlDecode False <$> getRequestBodyChunk request
+            let newTask = case B.stripPrefix "task=" rqBody of
+                    Nothing -> error $ show rqBody
+                    Just "" -> undefined
+                    Just bstr ->
+                        let str = byteStringToText bstr
+                         in TodoItem{identifier = str, description = str, completed = False}
 
-            respond emptyOk
+            print newTask
+            appendItem todoList newTask
+            respondHtml $ li . todoItem $ newTask
         ("DELETE", ["todos", todoId]) -> do
             modifyMVar todoList $ \todoList' -> do
                 let newState = filter (\item' -> identifier item' /= todoId) todoList'
