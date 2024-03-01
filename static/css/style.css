@@ -9,4 +9,7 @@ body {
   /*   color 400ms ease-in-out 0s, */
   /*   background-color 400ms ease-in-out 0s; */
   scroll-behavior: smooth;
+  .completed {
+    text-decoration-line: line-through;
+  }
 }

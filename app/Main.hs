@@ -3,12 +3,6 @@ import Foundation
 import Network.Wai.Handler.Warp (run)
 import Server (TodoItem (TodoItem), appWithState)
 
--- main :: IO ()
--- main = do
---     let port = 3000
---     putStrLn $ "listening on port: " <> show port
---     run port application
---
 main :: IO ()
 main = do
     let port = 3000

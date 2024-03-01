@@ -5,17 +5,17 @@ module Server (
 
 import Control.Concurrent (modifyMVar, readMVar)
 import Control.Concurrent.MVar (MVar)
-import Data.ByteString qualified as B
 import Data.Text (Text)
 import Foundation
 import Foundation.Collection (forM_)
-import Network.HTTP.Types (HeaderName, status200)
+import Network.HTTP.Types (HeaderName, status200, status404)
 import Network.Wai
 import Text.Blaze.Html.Renderer.Utf8 (renderHtml)
 import Text.Blaze.Html5 as H
 import Text.Blaze.Html5.Attributes as A
 import Text.Blaze.Htmx
 import Prelude (print)
+import Prelude qualified
 
 hello :: Html
 hello = H.docTypeHtml $ do
@@ -46,7 +46,7 @@ todos :: [TodoItem] -> Html
 todos todoList = H.docTypeHtml $ do
     H.head $ do
         H.title "Todos"
-        -- styleSheet "style.css"
+        styleSheet "style.css"
         htmxScriptTag
     H.body $ do
         h1 "todo list"
@@ -59,23 +59,42 @@ data TodoItem = TodoItem
     }
     deriving (Show, Eq)
 
+hxSwapOuter :: Attribute
+hxSwapOuter = hxSwap "outerHTML"
+
 todoItem :: TodoItem -> Html
 todoItem TodoItem{identifier, description, completed} =
-    H.div $
+    H.div ! class_ "todo-item" $
         mconcat
             [ H.span (text description)
+                ! if completed then class_ "completed" else mempty
             , input
                 ! type_ "checkbox"
                 ! name "completed"
                 ! hxPut ("/todos/" <> toValue identifier)
-                -- ! value "true"
+                ! hxSwapOuter
+                ! hxTarget "closest .todo-item"
                 ! if completed then checked "true" else mempty
             , button
                 ! hxDelete ("/todos/" <> toValue identifier)
                 ! hxTarget "closest li"
-                ! hxSwap "outerHTML"
+                ! hxSwapOuter
                 $ text "delete"
             ]
+
+changeCompletion :: MVar [TodoItem] -> Text -> Bool -> IO (Maybe TodoItem)
+changeCompletion todoList todoId isCompleted = modifyMVar todoList $ \todoList' -> do
+    let changeCompleted item' =
+            if identifier item' == todoId
+                then item'{completed = isCompleted}
+                else item'
+        newState = changeCompleted <$> todoList'
+        newTodo = find ((== todoId) . identifier) newState
+
+    return (newState, newTodo)
+
+emptyOk :: Response
+emptyOk = responseLBS status200 [("Content-Type", "text/plain")] ""
 
 appWithState :: MVar [TodoItem] -> Request -> (Response -> IO b) -> IO b
 appWithState todoList request respond = do
@@ -99,18 +118,18 @@ appWithState todoList request respond = do
             rqBody <- getRequestBodyChunk request
             let isCompleted = case rqBody of
                     "" -> False
-                    str | "completed=" `B.isPrefixOf` str -> True
-                    _ -> error "dupa"
+                    _ -> True
 
-            modifyMVar todoList $ \todoList' -> do
-                let changeCompleted item' =
-                        if identifier item' == todoId
-                            then item'{completed = isCompleted}
-                            else item'
-                    newState = changeCompleted <$> todoList'
+            mbyTodo <- changeCompletion todoList todoId isCompleted
+            print mbyTodo
+            respond $ case mbyTodo of
+                Just newTodo -> responseLBS status200 [contentTypeHtml] $ renderHtml $ todoItem newTodo
+                Nothing -> responseLBS status404 [("Content-Type", "text/plain")] $ "the todo item with ID " <> (fromString . Prelude.show $ todoId) <> " not found"
+        ("POST", ["todos"]) -> do
+            rqBody <- getRequestBodyChunk request
+            print rqBody
 
-                responseReceived <- respond $ responseLBS status200 [("Content-Type", "text/plain")] ""
-                return (newState, responseReceived)
+            respond emptyOk
         ("DELETE", ["todos", todoId]) -> do
             modifyMVar todoList $ \todoList' -> do
                 let newState = filter (\item' -> identifier item' /= todoId) todoList'
