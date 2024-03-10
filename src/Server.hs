@@ -3,6 +3,7 @@ module Server (
     appWithState,
 ) where
 
+import Blaze.ByteString.Builder.Char.Utf8 (fromShow)
 import Control.Concurrent (modifyMVar, readMVar)
 import Control.Concurrent.MVar (MVar)
 import Data.ByteString (ByteString)
@@ -11,7 +12,7 @@ import Data.Text (Text)
 import Data.Text.Encoding qualified as TSE
 import Foundation
 import Foundation.Collection (forM_)
-import Network.HTTP.Types (HeaderName, status200, status404, urlDecode)
+import Network.HTTP.Types (HeaderName, movedPermanently301, status200, status404, temporaryRedirect307, urlDecode)
 import Network.Wai
 import Text.Blaze.Html.Renderer.Utf8 (renderHtml)
 import Text.Blaze.Html5 as H
@@ -20,11 +21,18 @@ import Text.Blaze.Htmx
 import Prelude (print)
 import Prelude qualified
 
+headContent :: Html
+headContent = do
+    H.title "TODO app"
+    H.meta ! charset "UTF-8"
+    H.meta ! name "viewport" ! content "width=device-width, initial-scale=1.0"
+    H.meta ! name "author" ! content "Your Name"
+    -- font
+    htmxScriptTag
+
 hello :: Html
 hello = H.docTypeHtml $ do
-    H.head $ do
-        H.title "Hello World"
-        htmxScriptTag
+    H.head headContent
     H.body $ do
         H.h1 "Hello World"
 
@@ -48,20 +56,39 @@ contentTypeCss = ("Content-Type", "text/css")
 todos :: [TodoItem] -> Html
 todos todoList = H.docTypeHtml $ do
     H.head $ do
+        headContent
+
         H.title "Todos"
         styleSheet "style.css"
         htmxScriptTag
     H.body $ do
         h1 "todo list"
-        ul ! A.id "todo-list" $ forM_ todoList (li . todoItem)
+        ol ! A.id "todo-list" $ forM_ todoList (li . todoItem)
 
-        input
-            ! type_ "text"
-            ! name "task"
-            ! placeholder "very important task"
+        newTodoTextBox
+
+newTodoTextBox :: Html
+newTodoTextBox = do
+    H.div ! hxBoost $ do
+        H.form
             ! hxPost "/todos"
             ! hxTarget "#todo-list"
             ! hxSwap "beforeend"
+            $ do
+                H.label $ do
+                    H.span ! class_ "screen-reader-text" $ "New TODO"
+                    input
+                        ! type_ "text"
+                        ! name "task"
+                        ! placeholder "very important task"
+                        ! hxPost "/todos"
+                        ! hxTarget "#todo-list"
+                        ! hxSwap "beforeend"
+                input
+                    ! type_ "submit"
+                    ! A.value "add task"
+                    ! A.id "button-add-todo"
+                    ! class_ "button-add-todo"
 
 data TodoItem = TodoItem
     { identifier :: Text
@@ -75,23 +102,27 @@ hxSwapOuter = hxSwap "outerHTML"
 
 todoItem :: TodoItem -> Html
 todoItem TodoItem{identifier, description, completed} =
-    H.div ! class_ "todo-item" $
-        mconcat
-            [ H.span (text description)
-                ! if completed then class_ "completed" else mempty
-            , input
-                ! type_ "checkbox"
-                ! name "completed"
-                ! hxPut ("/todos/" <> toValue identifier)
-                ! hxSwapOuter
-                ! hxTarget "closest .todo-item"
-                ! if completed then checked "true" else mempty
-            , button
-                ! hxDelete ("/todos/" <> toValue identifier)
-                ! hxTarget "closest li"
-                ! hxSwapOuter
-                $ text "delete"
-            ]
+    let checkboxId = "checkbox-" <> toValue identifier
+     in H.div ! class_ "todo-item container" $
+            H.div ! class_ "column" $ do
+                H.div ! class_ "row" $ do
+                    input
+                        ! type_ "checkbox"
+                        ! name "completed"
+                        ! A.id checkboxId
+                        ! hxPut ("/todos/" <> toValue identifier)
+                        ! hxSwapOuter
+                        ! hxTarget "closest .todo-item"
+                        ! if completed then checked "true" else mempty
+                    H.label (text description)
+                        ! A.for checkboxId
+                        ! if completed then class_ "completed" else mempty
+
+                button
+                    ! hxDelete ("/todos/" <> toValue identifier)
+                    ! hxTarget "closest li"
+                    ! hxSwapOuter
+                    $ text "delete"
 
 changeCompletion :: MVar [TodoItem] -> Text -> Bool -> IO (Maybe TodoItem)
 changeCompletion todoList todoId isCompleted = modifyMVar todoList $ \todoList' -> do
@@ -143,10 +174,11 @@ appWithState todoList request respond = do
                     _ -> True
 
             mbyTodo <- changeCompletion todoList todoId isCompleted
-            print mbyTodo
             respond $ case mbyTodo of
                 Just newTodo -> responseLBS status200 [contentTypeHtml] $ renderHtml $ todoItem newTodo
-                Nothing -> responseLBS status404 [("Content-Type", "text/plain")] $ "the todo item with ID " <> (B.fromStrict . textToByteString $ todoId) <> " not found"
+                Nothing ->
+                    let msg = "the todo item with ID " <> fromShow todoId <> " not found"
+                     in responseBuilder status404 [("Content-Type", "text/plain")] msg
         ("POST", ["todos"]) -> do
             rqBody <- urlDecode False <$> getRequestBodyChunk request
             let newTask = case B.stripPrefix "task=" rqBody of
@@ -165,6 +197,8 @@ appWithState todoList request respond = do
 
                 responseReceived <- respond $ responseLBS status200 [("Content-Type", "text/plain")] ""
                 return (newState, responseReceived)
+        ("GET", []) ->
+            respond $ responseLBS movedPermanently301 [("Location", "/todos")] mempty
         other -> do
             Prelude.print other
             rqBody <- getRequestBodyChunk request

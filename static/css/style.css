@@ -1,15 +1,59 @@
+:root {
+  --ff-sans: "Josefin Sans", system-ui, sans-serif;
+  --base-font: 1.6rem;
+  --fw-normal: 400;
+  --fw-bold: 700;
+  --img-bg: url("../assets/images/bg-desktop-dark.jpg");
+  --color-primary: hsl(0, 0%, 98%);
+  --color-white: hsl(0, 0%, 100%);
+  --color-page-bg: hsl(235, 21%, 11%);
+  --color-card-bg: hsl(235, 24%, 19%);
+  --color-blue: hsl(220, 98%, 61%);
+  --color-green: hsl(192, 100%, 67%);
+  --color-pink: hsl(280, 87%, 65%);
+  --color-gb-1: hsl(236, 33%, 92%);
+  --color-gb-2: hsl(234, 39%, 75%);
+  --color-gb-3: hsl(234, 11%, 52%);
+  --color-gb-4: hsl(237, 12%, 36%);
+  --color-gb-5: hsl(233, 14%, 35%);
+  --color-gb-6: hsl(235, 19%, 24%);
+  --color-box-shadow: hsl(0, 0%, 0%, 0.1);
+}
+/* Get rid of default css - Using css resets */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 120%;
+  position: relative;
+}
+
+html,
 body {
-  font-family: Rubik;
-  font-size: 1rem;
-  font-weight: 400;
-  line-height: 1.5;
-  color: rgb(236, 239, 244);
-  background-color: rgb(46, 52, 64);
-  /* transition: */
-  /*   color 400ms ease-in-out 0s, */
-  /*   background-color 400ms ease-in-out 0s; */
-  scroll-behavior: smooth;
-  .completed {
-    text-decoration-line: line-through;
-  }
+  min-height: 100%;
+}
+
+ul {
+  list-style: none;
+}
+
+img {
+  user-select: none;
+}
+
+body {
+  font: var(--fw-normal) var(--base-font) var(--ff-sans);
+  background: var(--color-page-bg)
+    /* var(--img-bg) no-repeat 0% 0% / 100vw 30rem; */;
+  padding-top: 8rem;
+  width: min(85%, 54rem);
+  margin: auto;
+}
+
+.completed {
+  text-decoration-line: line-through;
+  /* transition: text-decoration-line 100ms ease-in-out 0s; */
 }
