@@ -62,33 +62,49 @@ todos todoList = H.docTypeHtml $ do
         styleSheet "style.css"
         htmxScriptTag
     H.body $ do
-        h1 "todo list"
-        ol ! A.id "todo-list" $ forM_ todoList (li . todoItem)
+        H.header $ h1 "todo list"
+        H.main $
+            ol ! A.id "todo-list" $
+                forM_ todoList (li . todoItem)
 
         newTodoTextBox
 
 newTodoTextBox :: Html
 newTodoTextBox = do
-    H.div ! hxBoost $ do
+    H.div ! hxBoost ! class_ "card" $ do
         H.form
             ! hxPost "/todos"
             ! hxTarget "#todo-list"
             ! hxSwap "beforeend"
             $ do
                 H.label $ do
-                    H.span ! class_ "screen-reader-text" $ "New TODO"
-                    input
-                        ! type_ "text"
-                        ! name "task"
-                        ! placeholder "very important task"
-                        ! hxPost "/todos"
-                        ! hxTarget "#todo-list"
-                        ! hxSwap "beforeend"
+                    -- H.span ! class_ "screen-reader-text" $ "add new tak"
+                    H.div ! A.id "input-container" $
+                        input
+                            ! type_ "text"
+                            ! name "task"
+                            ! placeholder "very important task"
+                            ! class_ "new-task"
+                            ! spellcheck "false"
+                            ! autocomplete "off"
+                            ! hxPost "/todos"
+                            ! hxTarget "#todo-list"
+                            ! hxSwap "beforeend"
                 input
                     ! type_ "submit"
                     ! A.value "add task"
                     ! A.id "button-add-todo"
                     ! class_ "button-add-todo"
+
+-- feature idea:
+-- <div class="filter">
+--   <button id="all" class="on">All</button>
+--   <button id="active">Active</button>
+--   <button id="completed">Completed</button>
+-- </div>
+-- <div class="corner">
+--   <button id="clear-completed">Clear Completed</button>
+-- </div>
 
 data TodoItem = TodoItem
     { identifier :: Text
@@ -103,12 +119,12 @@ hxSwapOuter = hxSwap "outerHTML"
 todoItem :: TodoItem -> Html
 todoItem TodoItem{identifier, description, completed} =
     let checkboxId = "checkbox-" <> toValue identifier
-     in H.div ! class_ "todo-item container" $
-            H.div ! class_ "column" $ do
+     in H.div ! class_ "todo-item container" $ do
                 H.div ! class_ "row" $ do
                     input
                         ! type_ "checkbox"
                         ! name "completed"
+                        ! class_ "checkbox"
                         ! A.id checkboxId
                         ! hxPut ("/todos/" <> toValue identifier)
                         ! hxSwapOuter
@@ -154,10 +170,7 @@ appWithState todoList request respond = do
     case (requestMethod request, pathInfo request) of
         ("GET", ["todos"]) -> do
             todoList' <- readMVar todoList
-            respond $
-                responseLBS status200 [contentTypeHtml] $
-                    renderHtml $
-                        todos todoList'
+            respondHtml $ todos todoList'
         ("GET", ["style.css"]) ->
             respond $
                 responseFile status200 [contentTypeCss] "static/css/style.css" Nothing

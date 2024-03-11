@@ -3,7 +3,7 @@
   --base-font: 1.6rem;
   --fw-normal: 400;
   --fw-bold: 700;
-  --img-bg: url("../assets/images/bg-desktop-dark.jpg");
+  /* --img-bg: url("../assets/images/bg-desktop-dark.jpg"); */
   --color-primary: hsl(0, 0%, 98%);
   --color-white: hsl(0, 0%, 100%);
   --color-page-bg: hsl(235, 21%, 11%);
@@ -27,7 +27,7 @@
 }
 
 html {
-  font-size: 120%;
+  font-size: 80%;
   position: relative;
 }
 
@@ -46,11 +46,86 @@ img {
 
 body {
   font: var(--fw-normal) var(--base-font) var(--ff-sans);
-  background: var(--color-page-bg)
-    /* var(--img-bg) no-repeat 0% 0% / 100vw 30rem; */;
+  color: var(--color-white);
+  background-color: var(--color-page-bg);
   padding-top: 8rem;
   width: min(85%, 54rem);
   margin: auto;
+}
+
+input:focus,
+button:focus {
+  outline: 0;
+}
+
+button {
+  display: flex;
+  user-select: none;
+}
+
+input,
+button {
+  font: inherit; /* by default input elements won't inherit font 
+                    from its parent */
+  color: inherit;
+  border: 0;
+  background: transparent;
+}
+
+.card {
+  background-color: var(--color-card-bg);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  /* padding: 1.9rem 2rem; */
+  gap: 2rem;
+}
+
+.new-task {
+  margin: 4rem 0 2.5rem 0;
+  border-radius: 0.5rem;
+}
+
+#button-add-todo {
+  color: var(--color-gb-2);
+  font-size: var(--base-font);
+  width: 100%;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+}
+
+/* define some states */
+#button-add-todo:hover {
+  background: var(--color-blue);
+}
+
+#button-add-todo:active {
+  transform: scale(0.95);
+}
+
+#button-add-todo:hover {
+  color: var(--color-white);
+}
+
+.input-container {
+  flex: 1;
+}
+
+.new-task {
+  width: 100%;
+  padding: 0.7rem 0;
+  color: var(--color-gb-1);
+}
+
+.new-task::placeholder {
+  color: var(--color-gb-5);
+  font-weight: var(--fw-normal);
+}
+
+input[type="checkbox"] {
+  transform: scale(1.8);
+  margin: 1rem;
 }
 
 .completed {
